@@ -1,0 +1,112 @@
+export interface User {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  country: string;
+  password: string;
+  role: 'user' | 'admin';
+  referralCode: string;
+  referredBy?: string;
+  createdAt: string;
+}
+
+export type NetworkType = 'TRC20' | 'BEP20' | 'ERC20' | 'POL' | 'BTC' | 'ETH' | 'BinancePay';
+
+export interface Deposit {
+  id: string;
+  userId: string;
+  amount: number;
+  network: NetworkType;
+  txHash?: string;
+  status: 'pending' | 'confirmed' | 'rejected';
+  createdAt: string;
+}
+
+export interface Withdrawal {
+  id: string;
+  userId: string;
+  type: 'capital' | 'interest';
+  amount: number;
+  network: NetworkType;
+  walletAddress: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+}
+
+export interface DailyAccrual {
+  id: string;
+  userId: string;
+  capital: number;
+  rate: number;
+  interest: number;
+  date: string;
+}
+
+export interface Transaction {
+  id: string;
+  userId: string;
+  type: 'deposit' | 'withdrawal' | 'accrual';
+  withdrawType?: 'capital' | 'interest';
+  amount: number;
+  network?: NetworkType;
+  description?: string;
+  status: 'pending' | 'confirmed' | 'approved' | 'rejected' | 'paid';
+  createdAt: string;
+}
+
+export interface Referral {
+  id: string;
+  referrerId: string;
+  referredUserId: string;
+  commission: number;
+  createdAt: string;
+}
+
+export type UserLevel = 'bronze' | 'silver' | 'gold' | 'platinum';
+
+export interface LevelConfig {
+  level: UserLevel;
+  label: string;
+  minCapital: number;
+  maxCapital: number;
+  referralMatchPercent: number;
+  color: string;
+}
+
+export interface SimulationParams {
+  capital: number;
+  months: number;
+  monthlyContribution: number;
+  mode: 'withdrawal' | 'compound';
+}
+
+export interface DayData {
+  day: number;
+  capital: number;
+  dailyGain: number;
+  accumulatedGain: number;
+}
+
+export interface SimulationResult {
+  capitalInicial: number;
+  gananciaTotal: number;
+  capitalProyectado: number;
+  roiPercent: number;
+  dailyRate: number;
+  dailyGain: number;
+  monthlyGain: number;
+  annualGain: number;
+  monthlyData: { month: number; capital: number; gain: number; cumulativeGain: number }[];
+}
+
+export type Page =
+  | 'login'
+  | 'register'
+  | 'dashboard'
+  | 'renta-mixta'
+  | 'simulator'
+  | 'wallet'
+  | 'history'
+  | 'referrals'
+  | 'admin';
