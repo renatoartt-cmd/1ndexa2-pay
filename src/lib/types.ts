@@ -63,6 +63,29 @@ export interface Referral {
   createdAt: string;
 }
 
+export interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  image: string;
+  category: string;
+  isActive: boolean;
+  licenseData: string; // The secret to be revealed
+  createdAt: string;
+}
+
+export interface Order {
+  id: string;
+  userId: string;
+  productId: string;
+  amount: number;
+  paymentMethod: 'balance' | 'external';
+  status: 'pending' | 'completed' | 'cancelled';
+  licenseDataRevealed?: string;
+  createdAt: string;
+}
+
 export type UserLevel = 'bronze' | 'silver' | 'gold' | 'platinum';
 
 export interface LevelConfig {
@@ -109,4 +132,5 @@ export type Page =
   | 'wallet'
   | 'history'
   | 'referrals'
-  | 'admin';
+  | 'admin'
+  | 'marketplace';

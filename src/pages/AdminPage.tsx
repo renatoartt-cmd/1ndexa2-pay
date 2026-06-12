@@ -59,7 +59,7 @@ export default function AdminPage() {
     fetchWallets();
   }, []);
 
-  const { users: allUsers, deposits, withdrawals, accruals, referrals, refresh, loading } = useData();
+  const { users: allUsers, deposits, withdrawals, accruals, referrals, products, orders, refresh, loading } = useData();
 
   if (!user || !isAdmin || loading) {
     return (
@@ -149,7 +149,24 @@ export default function AdminPage() {
     { key: 'users' as const, label: 'Usuarios', icon: Users },
     { key: 'wallets' as const, label: 'Wallets', icon: Wallet },
     { key: 'referrals' as const, label: 'Referidos', icon: Award },
+    { key: 'marketplace' as const, label: 'Marketplace', icon: ShoppingBag },
   ];
+
+  const pendingOrders = orders.filter(o => o.status === 'pending');
+
+  const handleApproveOrder = async (orderId: string, productId: string) => {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+    await api.updateOrderStatus(orderId, 'completed', product.licenseData);
+    await refresh();
+    toast('Orden aprobada', 'success');
+  };
+
+  const handleRejectOrder = async (orderId: string) => {
+    await api.updateOrderStatus(orderId, 'cancelled');
+    await refresh();
+    toast('Orden rechazada', 'error');
+  };
 
   return (
     <div className="page-section">
@@ -197,7 +214,7 @@ export default function AdminPage() {
             ) : (
               <div className="space-y-2">
                 {pendingDeposits.map((d) => {
-                  const u = storage.getUsers().find((x) => x.id === d.userId);
+                  const u = allUsers.find((x) => x.id === d.userId);
                   return (
                     <div key={d.id} className="flex items-center justify-between bg-brand-dark/40 rounded-lg px-4 py-3">
                       <div>
@@ -224,7 +241,7 @@ export default function AdminPage() {
             ) : (
               <div className="space-y-2">
                 {pendingWithdrawals.map((w) => {
-                  const u = storage.getUsers().find((x) => x.id === w.userId);
+                  const u = allUsers.find((x) => x.id === w.userId);
                   return (
                     <div key={w.id} className="flex items-center justify-between bg-brand-dark/40 rounded-lg px-4 py-3">
                       <div>
@@ -242,6 +259,68 @@ export default function AdminPage() {
                 })}
               </div>
             )}
+          </div>
+        </>
+      )}
+
+      {section === 'marketplace' && (
+        <>
+          <div className="glass-card p-5 mb-6 border-l-4 border-purple-500">
+            <h3 className="font-display text-lg tracking-wider text-white mb-3">ORDENES DE PRODUCTOS PENDIENTES ({pendingOrders.length})</h3>
+            {pendingOrders.length === 0 ? (
+              <p className="font-mono text-xs text-white/20">No hay órdenes pendientes de aprobación manual</p>
+            ) : (
+              <div className="space-y-2">
+                {pendingOrders.map((o) => {
+                  const u = allUsers.find((x) => x.id === o.userId);
+                  const p = products.find(x => x.id === o.productId);
+                  return (
+                    <div key={o.id} className="flex items-center justify-between bg-brand-dark/40 rounded-lg px-4 py-3">
+                      <div>
+                        <span className="font-mono text-sm text-white/60">{o.amount} USDT</span>
+                        <span className="font-mono text-[10px] text-white/25 ml-2">por {p?.name}</span>
+                        <span className="font-mono text-[10px] text-white/25 ml-2">- {u?.fullName || 'Desconocido'}</span>
+                        <span className="font-mono text-[10px] text-purple-400 ml-2">({o.paymentMethod})</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => handleApproveOrder(o.id, o.productId)} className="p-1.5 rounded-md bg-brand-success/20 text-brand-success hover:bg-brand-success/30 transition" title="Aprobar y Entregar Acceso"><Check size={14} /></button>
+                        <button onClick={() => handleRejectOrder(o.id)} className="p-1.5 rounded-md bg-brand-error/20 text-brand-error hover:bg-brand-error/30 transition"><X size={14} /></button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="glass-card p-5">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="font-display text-lg tracking-wider text-white">CATÁLOGO DE PRODUCTOS ({products.length})</h3>
+            </div>
+            
+            <div className="space-y-4">
+              {products.map(p => (
+                <div key={p.id} className="bg-gray-800 rounded-lg p-4 flex flex-col md:flex-row gap-4 border border-gray-700">
+                  <img src={p.image} className="w-full md:w-32 h-20 object-cover rounded bg-gray-900" alt={p.name} />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-white font-bold">{p.name}</span>
+                      <span className="text-cyan-400 font-mono text-xs">${p.price}</span>
+                      {!p.isActive && <span className="text-red-400 text-xs">(Inactivo)</span>}
+                    </div>
+                    <p className="text-gray-400 text-sm mt-1">{p.description}</p>
+                    <div className="mt-2 bg-black/50 p-2 rounded text-xs font-mono text-green-400 border border-gray-800">
+                      Licencia/Secreto: {p.licenseData}
+                    </div>
+                  </div>
+                  {/* Note: In a full admin panel we would add Edit/Toggle Active buttons here */}
+                </div>
+              ))}
+
+              {products.length === 0 && (
+                <p className="text-gray-400 text-center py-4">Agrega productos directamente en la base de datos Supabase por ahora.</p>
+              )}
+            </div>
           </div>
         </>
       )}

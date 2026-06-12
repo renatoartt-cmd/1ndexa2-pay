@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { User, Deposit, Transaction, Withdrawal, DailyAccrual, Referral } from './types';
+import type { User, Deposit, Transaction, Withdrawal, DailyAccrual, Referral, Product, Order } from './types';
 
 // The API file replaces local storage with asynchronous Supabase calls.
 
@@ -145,4 +145,73 @@ export async function updateReferralCommission(id: string, commission: number): 
   const { data, error } = await supabase.from('referrals').update({ commission }).eq('id', id).select().single();
   if (error) throw error;
   return mapReferral(data);
+}
+
+// MARKETPLACE
+export const mapProduct = (p: any): Product => ({
+  id: p.id, name: p.name, description: p.description, price: Number(p.price),
+  image: p.image, category: p.category, isActive: p.is_active, 
+  licenseData: p.license_data, createdAt: p.created_at
+});
+
+export const mapOrder = (o: any): Order => ({
+  id: o.id, userId: o.user_id, productId: o.product_id, amount: Number(o.amount),
+  paymentMethod: o.payment_method, status: o.status, 
+  licenseDataRevealed: o.license_data_revealed, createdAt: o.created_at
+});
+
+export async function createProduct(product: Omit<Product, 'id' | 'createdAt'>): Promise<Product> {
+  const { data, error } = await supabase.from('products').insert({
+    name: product.name, description: product.description, price: product.price,
+    image: product.image, category: product.category, is_active: product.isActive,
+    license_data: product.licenseData
+  }).select().single();
+  if (error) throw error;
+  return mapProduct(data);
+}
+
+export async function fetchProducts(): Promise<Product[]> {
+  const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
+  if (error) throw error;
+  return data.map(mapProduct);
+}
+
+export async function updateProduct(id: string, product: Partial<Product>): Promise<Product> {
+  const updates: any = {};
+  if (product.name !== undefined) updates.name = product.name;
+  if (product.description !== undefined) updates.description = product.description;
+  if (product.price !== undefined) updates.price = product.price;
+  if (product.image !== undefined) updates.image = product.image;
+  if (product.category !== undefined) updates.category = product.category;
+  if (product.isActive !== undefined) updates.is_active = product.isActive;
+  if (product.licenseData !== undefined) updates.license_data = product.licenseData;
+
+  const { data, error } = await supabase.from('products').update(updates).eq('id', id).select().single();
+  if (error) throw error;
+  return mapProduct(data);
+}
+
+export async function createOrder(order: Omit<Order, 'id' | 'createdAt'>): Promise<Order> {
+  const { data, error } = await supabase.from('orders').insert({
+    user_id: order.userId, product_id: order.productId, amount: order.amount,
+    payment_method: order.paymentMethod, status: order.status,
+    license_data_revealed: order.licenseDataRevealed
+  }).select().single();
+  if (error) throw error;
+  return mapOrder(data);
+}
+
+export async function fetchOrders(): Promise<Order[]> {
+  const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+  if (error) throw error;
+  return data.map(mapOrder);
+}
+
+export async function updateOrderStatus(id: string, status: Order['status'], licenseDataRevealed?: string): Promise<Order> {
+  const updates: any = { status };
+  if (licenseDataRevealed !== undefined) updates.license_data_revealed = licenseDataRevealed;
+  
+  const { data, error } = await supabase.from('orders').update(updates).eq('id', id).select().single();
+  if (error) throw error;
+  return mapOrder(data);
 }
