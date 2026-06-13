@@ -3,7 +3,7 @@ import Chart from 'react-apexcharts';
 import { useData } from '../hooks/useData';
 import { ShieldCheck, Cloud, Server, Play, Pause, Plus, CheckCircle2, Wifi } from 'lucide-react';
 
-const INITIAL_CAPITAL = 100; // USD
+// Capital is calculated dynamically from MT5 deposits (DEAL_TYPE_BALANCE)
 
 function parseDate(dateVal: any): Date {
   if (!dateVal) return new Date();
@@ -47,9 +47,11 @@ export function CopytradingPage() {
     // 1. Sort trades
     const sorted = [...trades].filter(t => t.closeTime).sort((a, b) => parseDate(a.closeTime).getTime() - parseDate(b.closeTime).getTime());
     
-    let currentBalance = INITIAL_CAPITAL;
+    let currentBalance = 0;
+    let totalDeposits = 0;
     let winningTrades = 0;
     let totalProfit = 0;
+    let numTradingTrades = 0;
     
     // Tracking points for charts
     const dailyBalances: Record<string, number> = {};
@@ -58,6 +60,17 @@ export function CopytradingPage() {
     const yearlyData: Record<string, { startBalance: number, profit: number }> = {};
 
     sorted.forEach(t => {
+      if (t.type === 'balance') {
+        currentBalance += t.profit;
+        if (t.profit > 0) totalDeposits += t.profit; // Suma solo los depósitos al capital base
+        
+        const d = parseDate(t.closeTime);
+        const dateStr = d.toISOString().split('T')[0];
+        dailyBalances[dateStr] = currentBalance;
+        return; // No cuenta como trade para el winrate
+      }
+
+      numTradingTrades++;
       if (t.profit > 0) winningTrades++;
       totalProfit += t.profit;
 
@@ -97,8 +110,10 @@ export function CopytradingPage() {
       w.c = currentBalance;
     });
 
-    const winRate = sorted.length > 0 ? (winningTrades / sorted.length) * 100 : 0;
-    const absReturn = ((currentBalance - INITIAL_CAPITAL) / INITIAL_CAPITAL) * 100;
+    });
+
+    const winRate = numTradingTrades > 0 ? (winningTrades / numTradingTrades) * 100 : 0;
+    const absReturn = totalDeposits > 0 ? (totalProfit / totalDeposits) * 100 : 0;
 
     // Format Data for ApexCharts
     
@@ -137,9 +152,10 @@ export function CopytradingPage() {
 
     return {
       finalBalance: currentBalance,
+      totalDeposits,
       absReturn,
       winRate,
-      totalTrades: sorted.length,
+      totalTrades: numTradingTrades,
       lineChartData,
       candlestickData,
       monthlyBarData,
@@ -215,19 +231,19 @@ export function CopytradingPage() {
             <h2 className="text-4xl md:text-5xl font-black text-[#00E5FF] tracking-tight">
               ${formatCurrency(metrics.finalBalance)}
             </h2>
-            <p className="text-xs text-slate-500 tracking-widest mt-2 uppercase">Saldo Final Auditado (USD)</p>
+            <p className="text-xs text-slate-500 tracking-widest mt-2 uppercase">Saldo Final Auditado (USD.Cent)</p>
           </div>
 
           <div className="bg-[#0F172A]/80 border border-white/5 rounded-2xl p-6 text-center shadow-2xl backdrop-blur-sm min-w-[280px]">
             <h2 className="text-4xl md:text-5xl font-black text-[#F59E0B] tracking-tight">
-              +{formatCurrency(metrics.absReturn)}%
+              +{metrics.absReturn.toFixed(2)}%
             </h2>
             <p className="text-xs text-slate-500 tracking-widest mt-2 uppercase">Rendimiento Acumulado</p>
           </div>
 
           <div className="bg-[#0F172A]/80 border border-white/5 rounded-2xl p-6 text-center shadow-2xl backdrop-blur-sm min-w-[280px]">
             <h2 className="text-4xl md:text-5xl font-black text-[#00E5FF] tracking-tight">
-              {INITIAL_CAPITAL} USD
+              {formatCurrency(metrics.totalDeposits)} USD.Cent
             </h2>
             <p className="text-xs text-slate-500 tracking-widest mt-2 uppercase">Capital Inicial Base</p>
           </div>
@@ -361,7 +377,7 @@ export function CopytradingPage() {
                     </div>
                     <div className="bg-[#0B1221] border border-white/5 p-3 rounded-lg text-center">
                       <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-1">Balance Local</p>
-                      <p className="text-[#00E5FF] font-bold text-sm">$4,250.00</p>
+                      <p className="text-[#00E5FF] font-bold text-sm">{formatCurrency(metrics.finalBalance)} USD.Cent</p>
                     </div>
                   </div>
                 </div>
