@@ -48,7 +48,7 @@ export function CopytradingPage() {
     const sorted = [...trades].filter(t => t.closeTime).sort((a, b) => parseDate(a.closeTime).getTime() - parseDate(b.closeTime).getTime());
     
     let currentBalance = 0;
-    let totalDeposits = 0;
+    let netDeposits = 0; // Depósitos menos retiros (Capital Base Real)
     let winningTrades = 0;
     let totalProfit = 0;
     let numTradingTrades = 0;
@@ -62,7 +62,7 @@ export function CopytradingPage() {
     sorted.forEach(t => {
       if (t.type === 'balance') {
         currentBalance += t.profit;
-        if (t.profit > 0) totalDeposits += t.profit; // Suma solo los depósitos al capital base
+        netDeposits += t.profit; // Suma depósitos (+), resta retiros (-)
         
         const d = parseDate(t.closeTime);
         const dateStr = d.toISOString().split('T')[0];
@@ -111,7 +111,7 @@ export function CopytradingPage() {
     });
 
     const winRate = numTradingTrades > 0 ? (winningTrades / numTradingTrades) * 100 : 0;
-    const absReturn = totalDeposits > 0 ? (totalProfit / totalDeposits) * 100 : 0;
+    const absReturn = netDeposits > 0 ? (totalProfit / netDeposits) * 100 : 0;
 
     // Format Data for ApexCharts
     
@@ -150,7 +150,7 @@ export function CopytradingPage() {
 
     return {
       finalBalance: currentBalance,
-      totalDeposits,
+      netDeposits,
       absReturn,
       winRate,
       totalTrades: numTradingTrades,
@@ -241,9 +241,9 @@ export function CopytradingPage() {
 
           <div className="bg-[#0F172A]/80 border border-white/5 rounded-2xl p-6 text-center shadow-2xl backdrop-blur-sm min-w-[280px]">
             <h2 className="text-4xl md:text-5xl font-black text-[#00E5FF] tracking-tight">
-              {formatCurrency(metrics.totalDeposits)} USD.Cent
+              {formatCurrency(metrics.netDeposits)} USD.Cent
             </h2>
-            <p className="text-xs text-slate-500 tracking-widest mt-2 uppercase">Capital Inicial Base</p>
+            <p className="text-xs text-slate-500 tracking-widest mt-2 uppercase">Capital Base Neto</p>
           </div>
         </div>
 
