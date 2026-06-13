@@ -179,10 +179,6 @@ function AppInner() {
     return () => window.removeEventListener('message', handler);
   }, []);
 
-  useEffect(() => {
-    if (user) setPayOpen(true);
-  }, [user]);
-
   const handleLoginNav = useCallback((p: Page) => {
     if (p === 'register') setAuthPage('register');
     else setAuthPage('login');

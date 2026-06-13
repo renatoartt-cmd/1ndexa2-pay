@@ -5,8 +5,19 @@ import { ShieldCheck } from 'lucide-react';
 
 const INITIAL_CAPITAL = 100; // USD
 
-function getWeekStart(dateStr: string) {
-  const d = new Date(dateStr);
+function parseDate(dateVal: any): Date {
+  if (!dateVal) return new Date();
+  if (typeof dateVal === 'number') {
+    // Excel serial date to JS Date
+    return new Date(Math.round((dateVal - 25569) * 86400 * 1000));
+  }
+  const str = String(dateVal).replace(/\./g, '-').replace(' ', 'T');
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? new Date() : d;
+}
+
+function getWeekStart(dateStr: any) {
+  const d = parseDate(dateStr);
   const day = d.getDay();
   const diff = d.getDate() - day + (day === 0 ? -6 : 1);
   const weekStart = new Date(d.setDate(diff));
@@ -14,13 +25,13 @@ function getWeekStart(dateStr: string) {
   return weekStart.toISOString().split('T')[0];
 }
 
-function getMonthKey(dateStr: string) {
-  const d = new Date(dateStr);
+function getMonthKey(dateStr: any) {
+  const d = parseDate(dateStr);
   return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`;
 }
 
-function getYearKey(dateStr: string) {
-  return new Date(dateStr).getFullYear().toString();
+function getYearKey(dateStr: any) {
+  return parseDate(dateStr).getFullYear().toString();
 }
 
 function formatCurrency(n: number) {
@@ -32,7 +43,7 @@ export function CopytradingPage() {
 
   const metrics = useMemo(() => {
     // 1. Sort trades
-    const sorted = [...trades].filter(t => t.closeTime).sort((a, b) => new Date(a.closeTime).getTime() - new Date(b.closeTime).getTime());
+    const sorted = [...trades].filter(t => t.closeTime).sort((a, b) => parseDate(a.closeTime).getTime() - parseDate(b.closeTime).getTime());
     
     let currentBalance = INITIAL_CAPITAL;
     let winningTrades = 0;
@@ -48,7 +59,8 @@ export function CopytradingPage() {
       if (t.profit > 0) winningTrades++;
       totalProfit += t.profit;
 
-      const dateStr = t.closeTime.split('T')[0] || t.closeTime.split(' ')[0];
+      const d = parseDate(t.closeTime);
+      const dateStr = d.toISOString().split('T')[0];
       const weekKey = getWeekStart(t.closeTime);
       const monthKey = getMonthKey(t.closeTime);
       const yearKey = getYearKey(t.closeTime);
