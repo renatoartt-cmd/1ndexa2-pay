@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { toast } from '../hooks/useToast';
 import { useData } from '../hooks/useData';
 import * as api from '../lib/api';
-import { calculateTotalCapital, calculateTotalAccruedInterest } from '../lib/calculations';
+import { calculateTotalCapital, calculateTotalAccruedInterest, calculateUserCapital } from '../lib/calculations';
 import { supabase } from '../lib/supabase';
 import { getUserLevel, LEVEL_CONFIG, DAILY_RATE } from '../lib/simulator';
 import {
@@ -350,7 +350,7 @@ export default function AdminPage() {
                 </thead>
                 <tbody>
                   {users.map((u) => {
-                    const cap = storage.getUserCapital(u.id);
+                    const cap = calculateUserCapital(u.id, deposits, withdrawals, accruals);
                     const lvl = getUserLevel(cap);
                     return (
                       <tr key={u.id} className="border-b border-brand-border/50 hover:bg-white/[0.02] transition-colors">
