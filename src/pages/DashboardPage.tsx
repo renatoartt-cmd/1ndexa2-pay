@@ -62,14 +62,12 @@ export default function DashboardPage() {
 
   const { deposits, withdrawals, accruals: globalAccruals, transactions: globalTransactions, loading } = useData();
 
-  if (!user || loading) return null;
-
-  const capital = calculateUserCapital(user.id, deposits, withdrawals, globalAccruals);
-  const daysActive = getUserDaysActive(user.id, deposits);
+  const capital = user ? calculateUserCapital(user.id, deposits, withdrawals, globalAccruals) : 0;
+  const daysActive = user ? getUserDaysActive(user.id, deposits) : 0;
   const level = getUserLevel(capital);
   const projection = dashboardProjection(capital, daysActive);
-  const transactions = getUserTransactions(user.id, globalTransactions);
-  const accruals = getUserAccruals(user.id, globalAccruals);
+  const transactions = user ? getUserTransactions(user.id, globalTransactions) : [];
+  const accruals = user ? getUserAccruals(user.id, globalAccruals) : [];
   const totalAccrued = accruals.reduce((s, a) => s + a.interest, 0);
 
   const kpis = [
@@ -240,6 +238,8 @@ export default function DashboardPage() {
 
   const recentAccruals = accruals.slice(-10).reverse();
   const recentTx = transactions.slice(0, 8);
+
+  if (!user || loading) return null;
 
   return (
     <div className="page-section">

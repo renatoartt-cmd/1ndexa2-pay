@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import * as xlsx from 'xlsx';
+
 import { Upload, FileSpreadsheet, Trash2, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useData } from '../hooks/useData';
 import * as api from '../lib/api';
@@ -20,8 +20,9 @@ export function AdminTrades() {
     setError('');
 
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       try {
+        const xlsx = await import('xlsx');
         const bstr = evt.target?.result;
         const wb = xlsx.read(bstr, { type: 'binary' });
         const wsname = wb.SheetNames[0];
