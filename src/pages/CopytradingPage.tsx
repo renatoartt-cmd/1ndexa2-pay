@@ -110,8 +110,6 @@ export function CopytradingPage() {
       w.c = currentBalance;
     });
 
-    });
-
     const winRate = numTradingTrades > 0 ? (winningTrades / numTradingTrades) * 100 : 0;
     const absReturn = totalDeposits > 0 ? (totalProfit / totalDeposits) * 100 : 0;
 
