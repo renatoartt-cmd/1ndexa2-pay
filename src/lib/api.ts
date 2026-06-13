@@ -33,12 +33,12 @@ const mapTx = (t: any): Transaction => ({
 
 const mapWithdrawal = (w: any): Withdrawal => ({
   id: w.id, userId: w.user_id, amount: Number(w.amount), network: w.network, 
-  address: w.address, status: w.status, type: w.withdraw_type, createdAt: w.created_at
+  walletAddress: w.address, status: w.status, type: w.withdraw_type, createdAt: w.created_at
 });
 
 const mapAccrual = (a: any): DailyAccrual => ({
   id: a.id, userId: a.user_id, capital: Number(a.capital), rate: Number(a.rate), 
-  interest: Number(a.interest), date: a.date, createdAt: a.created_at
+  interest: Number(a.interest), date: a.date
 });
 
 const mapReferral = (r: any): Referral => ({
@@ -125,7 +125,7 @@ export async function updateTransactionStatus(id: string, status: Transaction['s
 
 export async function createWithdrawal(w: Omit<Withdrawal, 'id' | 'status' | 'createdAt'>): Promise<Withdrawal> {
   const { data, error } = await supabase.from('withdrawals').insert({
-    user_id: w.userId, amount: w.amount, network: w.network, address: w.address, status: 'pending', withdraw_type: w.type
+    user_id: w.userId, amount: w.amount, network: w.network, address: w.walletAddress, status: 'pending', withdraw_type: w.type
   }).select().single();
   if (error) throw error;
   return mapWithdrawal(data);

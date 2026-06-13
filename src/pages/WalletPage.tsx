@@ -132,7 +132,7 @@ export default function WalletPage() {
 
     if (!withdrawAddress.trim()) { toast('Ingrese la direccion de retiro', 'error'); return; }
     
-    await api.createWithdrawal({ userId: user.id, type: withdrawType, amount, network: withdrawNetwork, address: withdrawAddress.trim() });
+    await api.createWithdrawal({ userId: user.id, type: withdrawType, amount, network: withdrawNetwork, walletAddress: withdrawAddress.trim() });
     await api.createTransaction({ userId: user.id, type: 'withdrawal', withdrawType: withdrawType, amount, description: `Retiro ${withdrawNetwork} (${withdrawType === 'capital' ? 'Reembolso' : 'Ganancias'})`, status: 'pending' });
     await refresh();
     

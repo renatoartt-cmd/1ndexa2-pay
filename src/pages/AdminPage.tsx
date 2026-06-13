@@ -19,6 +19,7 @@ import {
   BarChart3,
   Copy,
   LineChart,
+  ShoppingBag,
 } from 'lucide-react';
 import { AdminTrades } from '../components/AdminTrades';
 
