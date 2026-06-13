@@ -86,6 +86,20 @@ export interface Order {
   createdAt: string;
 }
 
+export interface Trade {
+  id: string;
+  ticket: string;
+  symbol: string;
+  type: 'buy' | 'sell';
+  volume: number;
+  openPrice: number;
+  closePrice: number;
+  profit: number;
+  openTime: string;
+  closeTime: string;
+  createdAt: string;
+}
+
 export type UserLevel = 'bronze' | 'silver' | 'gold' | 'platinum';
 
 export interface LevelConfig {
@@ -133,4 +147,5 @@ export type Page =
   | 'history'
   | 'referrals'
   | 'admin'
-  | 'marketplace';
+  | 'marketplace'
+  | 'copytrading';

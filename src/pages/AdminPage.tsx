@@ -18,7 +18,9 @@ import {
   Award,
   BarChart3,
   Copy,
+  LineChart,
 } from 'lucide-react';
+import { AdminTrades } from '../components/AdminTrades';
 
 function fmt(n: number) {
   return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -44,7 +46,7 @@ const DEFAULT_WALLET_LIST = [
 
 export default function AdminPage() {
   const { user, isAdmin } = useAuth();
-  const [section, setSection] = useState<'overview' | 'users' | 'wallets' | 'referrals'>('overview');
+  const [section, setSection] = useState<'overview' | 'users' | 'wallets' | 'referrals' | 'marketplace' | 'copytrading'>('overview');
   const [wallets, setWallets] = useState<PlatformWallet[]>(DEFAULT_WALLET_LIST);
   const [editingWallet, setEditingWallet] = useState<number | null>(null);
   const [walletForm, setWalletForm] = useState({ network: '', label: '', address: '' });
@@ -150,6 +152,7 @@ export default function AdminPage() {
     { key: 'wallets' as const, label: 'Wallets', icon: Wallet },
     { key: 'referrals' as const, label: 'Referidos', icon: Award },
     { key: 'marketplace' as const, label: 'Marketplace', icon: ShoppingBag },
+    { key: 'copytrading' as const, label: 'Copytrading', icon: LineChart },
   ];
 
   const pendingOrders = orders.filter(o => o.status === 'pending');
@@ -468,6 +471,10 @@ export default function AdminPage() {
             </div>
           )}
         </div>
+      )}
+
+      {section === 'copytrading' && (
+        <AdminTrades />
       )}
     </div>
   );

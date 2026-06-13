@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import * as api from '../lib/api';
-import type { User, Deposit, Transaction, Withdrawal, DailyAccrual, Referral, Product, Order } from '../lib/types';
+import type { User, Deposit, Transaction, Withdrawal, DailyAccrual, Referral, Product, Order, Trade } from '../lib/types';
 import { useAuth } from './useAuth';
 
 interface DataState {
@@ -12,6 +12,7 @@ interface DataState {
   referrals: Referral[];
   products: Product[];
   orders: Order[];
+  trades: Trade[];
   loading: boolean;
   refresh: () => Promise<void>;
 }
@@ -21,12 +22,12 @@ const DataContext = createContext<DataState | null>(null);
 export function DataProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<Omit<DataState, 'loading' | 'refresh'>>({
-    users: [], deposits: [], transactions: [], withdrawals: [], accruals: [], referrals: [], products: [], orders: []
+    users: [], deposits: [], transactions: [], withdrawals: [], accruals: [], referrals: [], products: [], orders: [], trades: []
   });
 
   const refresh = async () => {
     try {
-      const [users, deposits, transactions, withdrawals, accruals, referrals, products, orders] = await Promise.all([
+      const [users, deposits, transactions, withdrawals, accruals, referrals, products, orders, trades] = await Promise.all([
         api.fetchUsers(),
         api.fetchDeposits(),
         api.fetchTransactions(),
@@ -34,9 +35,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
         api.fetchAccruals(),
         api.fetchReferrals(),
         api.fetchProducts(),
-        api.fetchOrders()
+        api.fetchOrders(),
+        api.fetchTrades()
       ]);
-      setData({ users, deposits, transactions, withdrawals, accruals, referrals, products, orders });
+      setData({ users, deposits, transactions, withdrawals, accruals, referrals, products, orders, trades });
     } catch (e) {
       console.error('Failed to load data from Supabase', e);
     }

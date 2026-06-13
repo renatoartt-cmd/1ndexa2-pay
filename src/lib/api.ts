@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { User, Deposit, Transaction, Withdrawal, DailyAccrual, Referral, Product, Order } from './types';
+import type { User, Deposit, Transaction, Withdrawal, DailyAccrual, Referral, Product, Order, Trade } from './types';
 
 // The API file replaces local storage with asynchronous Supabase calls.
 
@@ -46,6 +46,13 @@ const mapReferral = (r: any): Referral => ({
   commission: Number(r.commission), createdAt: r.created_at
 });
 
+const mapTrade = (t: any): Trade => ({
+  id: t.id, ticket: t.ticket, symbol: t.symbol, type: t.type,
+  volume: Number(t.volume), openPrice: Number(t.open_price),
+  closePrice: Number(t.close_price), profit: Number(t.profit),
+  openTime: t.open_time, closeTime: t.close_time, createdAt: t.created_at
+});
+
 export async function fetchUsers(): Promise<User[]> {
   const { data } = await supabase.from('users').select('*');
   return (data || []).map(mapUser);
@@ -74,6 +81,11 @@ export async function fetchAccruals(): Promise<DailyAccrual[]> {
 export async function fetchReferrals(): Promise<Referral[]> {
   const { data } = await supabase.from('referrals').select('*');
   return (data || []).map(mapReferral);
+}
+
+export async function fetchTrades(): Promise<Trade[]> {
+  const { data } = await supabase.from('trades').select('*').order('close_time', { ascending: false });
+  return (data || []).map(mapTrade);
 }
 
 // Mutations
@@ -145,6 +157,31 @@ export async function updateReferralCommission(id: string, commission: number): 
   const { data, error } = await supabase.from('referrals').update({ commission }).eq('id', id).select().single();
   if (error) throw error;
   return mapReferral(data);
+}
+
+export async function updateOrderLicense(id: string, licenseDataRevealed: string): Promise<Order> {
+  const { data, error } = await supabase.from('orders')
+    .update({ status: 'completed', license_data_revealed: licenseDataRevealed })
+    .eq('id', id)
+    .select().single();
+  if (error) throw error;
+  return mapOrder(data);
+}
+
+export async function bulkInsertTrades(trades: Omit<Trade, 'id' | 'createdAt'>[]): Promise<void> {
+  const dbTrades = trades.map(t => ({
+    ticket: t.ticket,
+    symbol: t.symbol,
+    type: t.type,
+    volume: t.volume,
+    open_price: t.openPrice,
+    close_price: t.closePrice,
+    profit: t.profit,
+    open_time: t.openTime,
+    close_time: t.closeTime
+  }));
+  const { error } = await supabase.from('trades').insert(dbTrades);
+  if (error) throw error;
 }
 
 // MARKETPLACE

@@ -14,6 +14,7 @@ import HistoryPage from './pages/HistoryPage';
 import ReferralsPage from './pages/ReferralsPage';
 import AdminPage from './pages/AdminPage';
 import { MarketplacePage } from './pages/MarketplacePage';
+import { CopytradingPage } from './pages/CopytradingPage';
 import {
   X,
   LayoutDashboard,
@@ -27,6 +28,7 @@ import {
   Menu,
   ChevronRight,
   ShoppingBag,
+  LineChart,
 } from 'lucide-react';
 
 const PAY_NAV: { page: Page; label: string; icon: typeof LayoutDashboard; admin?: boolean }[] = [
@@ -35,6 +37,7 @@ const PAY_NAV: { page: Page; label: string; icon: typeof LayoutDashboard; admin?
   { page: 'simulator', label: 'Simulador', icon: Calculator },
   { page: 'wallet', label: 'Depositar', icon: Wallet },
   { page: 'marketplace', label: 'Tienda', icon: ShoppingBag },
+  { page: 'copytrading', label: 'Copytrading', icon: LineChart },
   { page: 'history', label: 'Historial', icon: History },
   { page: 'referrals', label: 'Referidos', icon: Users },
   { page: 'admin', label: 'Admin', icon: Shield, admin: true },
@@ -74,6 +77,7 @@ function PayPanel() {
       case 'history': return <HistoryPage />;
       case 'referrals': return <ReferralsPage />;
       case 'marketplace': return <MarketplacePage />;
+      case 'copytrading': return <CopytradingPage />;
       case 'admin': return <AdminPage />;
       default: return <DashboardPage />;
     }
