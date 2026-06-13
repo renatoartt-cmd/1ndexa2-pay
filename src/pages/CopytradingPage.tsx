@@ -267,7 +267,11 @@ export function CopytradingPage() {
                 <div className="space-y-4 relative z-10">
                   <div className="flex items-center gap-3 text-sm text-slate-400">
                     <Server size={16} className="text-[#00E5FF]" />
-                    <span>Servidor: <strong className="text-white">VTMarkets-Live</strong></span>
+                    <span>Servidor Master: <strong className="text-white">VTMarkets-Live 3</strong></span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm text-slate-400">
+                    <ShieldCheck size={16} className="text-[#F59E0B]" />
+                    <span>Cuenta Maestra: <strong className="text-white">24188397</strong></span>
                   </div>
                   <div className="flex items-center gap-3 text-sm text-slate-400">
                     <Wifi size={16} className="text-[#10B981]" />
