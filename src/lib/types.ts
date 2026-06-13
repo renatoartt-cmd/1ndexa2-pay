@@ -104,7 +104,7 @@ export interface Trade {
   id: string;
   ticket: string;
   symbol: string;
-  type: 'buy' | 'sell';
+  type: 'buy' | 'sell' | 'balance';
   volume: number;
   openPrice: number;
   closePrice: number;
