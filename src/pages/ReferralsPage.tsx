@@ -173,7 +173,8 @@ export default function ReferralsPage() {
           <h4 className="font-mono text-[10px] text-white/35 tracking-widest uppercase mb-3">MIS REFERIDOS</h4>
           <div className="space-y-2">
             {referrals.map((r) => {
-              const referred = users.find((u: any) => u.id === r.referredUserId);
+              const referred = allUsers.find((u: any) => u.id === r.referredUserId);
+              const referredCapital = calculateUserCapital(r.referredUserId, deposits, withdrawals, accruals);
               return (
                 <div key={r.id} className="flex items-center justify-between bg-brand-dark/40 rounded-lg px-4 py-3">
                   <div className="flex items-center gap-3">

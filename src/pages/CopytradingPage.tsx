@@ -1,159 +1,310 @@
 import React, { useMemo } from 'react';
-import { LineChart, Activity, TrendingUp, TrendingDown, Target } from 'lucide-react';
+import Chart from 'react-apexcharts';
 import { useData } from '../hooks/useData';
+import { ShieldCheck } from 'lucide-react';
+
+const INITIAL_CAPITAL = 100; // USD
+
+function getWeekStart(dateStr: string) {
+  const d = new Date(dateStr);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  const weekStart = new Date(d.setDate(diff));
+  weekStart.setHours(0, 0, 0, 0);
+  return weekStart.toISOString().split('T')[0];
+}
+
+function getMonthKey(dateStr: string) {
+  const d = new Date(dateStr);
+  return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+}
+
+function getYearKey(dateStr: string) {
+  return new Date(dateStr).getFullYear().toString();
+}
+
+function formatCurrency(n: number) {
+  return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 
 export function CopytradingPage() {
   const { trades } = useData();
 
-  const stats = useMemo(() => {
-    let totalProfit = 0;
-    let winningTrades = 0;
-    let losingTrades = 0;
+  const metrics = useMemo(() => {
+    // 1. Sort trades
+    const sorted = [...trades].filter(t => t.closeTime).sort((a, b) => new Date(a.closeTime).getTime() - new Date(b.closeTime).getTime());
     
-    trades.forEach(t => {
-      totalProfit += t.profit;
+    let currentBalance = INITIAL_CAPITAL;
+    let winningTrades = 0;
+    let totalProfit = 0;
+    
+    // Tracking points for charts
+    const dailyBalances: Record<string, number> = {};
+    const weeklyOHLC: Record<string, { o: number, h: number, l: number, c: number }> = {};
+    const monthlyData: Record<string, { startBalance: number, profit: number }> = {};
+    const yearlyData: Record<string, { startBalance: number, profit: number }> = {};
+
+    sorted.forEach(t => {
       if (t.profit > 0) winningTrades++;
-      else if (t.profit < 0) losingTrades++;
+      totalProfit += t.profit;
+
+      const dateStr = t.closeTime.split('T')[0] || t.closeTime.split(' ')[0];
+      const weekKey = getWeekStart(t.closeTime);
+      const monthKey = getMonthKey(t.closeTime);
+      const yearKey = getYearKey(t.closeTime);
+
+      // Track start balances for periods
+      if (!monthlyData[monthKey]) {
+        monthlyData[monthKey] = { startBalance: currentBalance, profit: 0 };
+      }
+      if (!yearlyData[yearKey]) {
+        yearlyData[yearKey] = { startBalance: currentBalance, profit: 0 };
+      }
+
+      // Weekly OHLC
+      if (!weeklyOHLC[weekKey]) {
+        // First trade of the week. Open is the balance BEFORE this trade.
+        const open = currentBalance;
+        weeklyOHLC[weekKey] = { o: open, h: Math.max(open, currentBalance + t.profit), l: Math.min(open, currentBalance + t.profit), c: currentBalance + t.profit };
+      }
+
+      // Apply profit
+      currentBalance += t.profit;
+      dailyBalances[dateStr] = currentBalance;
+      
+      // Monthly/Yearly aggregations
+      monthlyData[monthKey].profit += t.profit;
+      yearlyData[yearKey].profit += t.profit;
+
+      // Update High/Low/Close for the week
+      const w = weeklyOHLC[weekKey];
+      w.h = Math.max(w.h, currentBalance);
+      w.l = Math.min(w.l, currentBalance);
+      w.c = currentBalance;
     });
 
-    const totalTrades = winningTrades + losingTrades;
-    const winRate = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0;
+    const winRate = sorted.length > 0 ? (winningTrades / sorted.length) * 100 : 0;
+    const absReturn = ((currentBalance - INITIAL_CAPITAL) / INITIAL_CAPITAL) * 100;
 
-    return { totalProfit, winningTrades, losingTrades, winRate, totalTrades };
+    // Format Data for ApexCharts
+    
+    // 1. Line Chart (Cumulative)
+    const dates = Object.keys(dailyBalances).sort();
+    const step = Math.max(1, Math.floor(dates.length / 100));
+    const lineChartData = dates.filter((_, i) => i % step === 0 || i === dates.length - 1).map(d => ({
+      x: d,
+      y: parseFloat(dailyBalances[d].toFixed(2))
+    }));
+
+    // 2. Candlestick Chart (Weekly)
+    const candlestickData = Object.keys(weeklyOHLC).sort().map(w => ({
+      x: w,
+      y: [
+        parseFloat(weeklyOHLC[w].o.toFixed(2)),
+        parseFloat(weeklyOHLC[w].h.toFixed(2)),
+        parseFloat(weeklyOHLC[w].l.toFixed(2)),
+        parseFloat(weeklyOHLC[w].c.toFixed(2))
+      ]
+    }));
+
+    // 3. Bar Chart (Monthly)
+    const monthlyBarData = Object.keys(monthlyData).sort().slice(-12).map(m => {
+      const d = monthlyData[m];
+      const yieldPct = d.startBalance > 0 ? (d.profit / d.startBalance) * 100 : 0;
+      return { x: m, y: parseFloat(yieldPct.toFixed(2)) };
+    });
+
+    // 4. Bar Chart (Yearly)
+    const yearlyBarData = Object.keys(yearlyData).sort().map(y => {
+      const d = yearlyData[y];
+      const yieldPct = d.startBalance > 0 ? (d.profit / d.startBalance) * 100 : 0;
+      return { x: y, y: parseFloat(yieldPct.toFixed(2)) };
+    });
+
+    return {
+      finalBalance: currentBalance,
+      absReturn,
+      winRate,
+      totalTrades: sorted.length,
+      lineChartData,
+      candlestickData,
+      monthlyBarData,
+      yearlyBarData
+    };
+
   }, [trades]);
 
+  // Chart Configurations
+  const commonOptions: ApexCharts.ApexOptions = {
+    chart: {
+      foreColor: '#64748B',
+      toolbar: { show: false },
+      background: 'transparent',
+    },
+    grid: {
+      borderColor: '#1E293B',
+      strokeDashArray: 4,
+    },
+    theme: { mode: 'dark' },
+    tooltip: { theme: 'dark' },
+  };
+
+  const lineChartOptions: ApexCharts.ApexOptions = {
+    ...commonOptions,
+    stroke: { curve: 'smooth', width: 3 },
+    colors: ['#00E5FF'],
+    fill: {
+      type: 'gradient',
+      gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 100] }
+    },
+    xaxis: { type: 'datetime', labels: { format: 'MMM yy' } },
+    yaxis: { labels: { formatter: (v) => `$${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}` } },
+    dataLabels: { enabled: false }
+  };
+
+  const candleOptions: ApexCharts.ApexOptions = {
+    ...commonOptions,
+    plotOptions: {
+      candlestick: {
+        colors: { upward: '#00E5FF', downward: '#8B5CF6' },
+        wick: { useFillColor: true }
+      }
+    },
+    xaxis: { type: 'datetime', labels: { format: 'MMM dd' } },
+    yaxis: { labels: { formatter: (v) => `$${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}` } }
+  };
+
+  const barMonthlyOptions: ApexCharts.ApexOptions = {
+    ...commonOptions,
+    colors: ['#8B5CF6'],
+    plotOptions: { bar: { borderRadius: 4, columnWidth: '60%' } },
+    dataLabels: { enabled: false },
+    yaxis: { labels: { formatter: (v) => `${v}%` } },
+  };
+
+  const barYearlyOptions: ApexCharts.ApexOptions = {
+    ...commonOptions,
+    colors: ['#00E5FF'],
+    plotOptions: { bar: { borderRadius: 4, columnWidth: '50%' } },
+    dataLabels: { enabled: false },
+    yaxis: { labels: { formatter: (v) => `${v}%` } },
+  };
+
   return (
-    <div className="min-h-screen bg-gray-900 pb-20">
-      <div className="bg-gray-800 border-b border-gray-700 p-6 md:p-8 relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-8 opacity-5">
-          <LineChart size={200} />
-        </div>
-        <div className="max-w-7xl mx-auto relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-xs font-mono mb-4">
-            <span className="w-2 h-2 rounded-full bg-brand-primary animate-pulse"></span>
-            LIVE TRADING ALGO
-          </div>
-          <h1 className="text-3xl md:text-5xl font-black text-white flex items-center gap-3">
-            Copytrading
-          </h1>
-          <p className="text-gray-400 mt-2 max-w-xl">
-            Transparencia total. Monitorea en tiempo real el rendimiento de nuestro algoritmo institucional y traders profesionales.
-          </p>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto p-6 md:p-8 space-y-8">
-        
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="glass-card p-5 border-t-2 border-t-brand-primary">
-            <div className="flex items-center gap-2 mb-2 text-gray-400">
-              <Activity size={16} />
-              <span className="text-xs uppercase tracking-wider font-mono">Profit Total</span>
-            </div>
-            <div className={`text-3xl font-display ${stats.totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {stats.totalProfit > 0 ? '+' : ''}{stats.totalProfit.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
-            </div>
-          </div>
+    <div className="min-h-screen bg-[#0B1221] pb-20 font-sans selection:bg-brand-orange/30">
+      
+      {/* Header Stats */}
+      <div className="pt-12 pb-8 px-6 max-w-[1400px] mx-auto">
+        <div className="flex flex-col lg:flex-row justify-center gap-6 lg:gap-12 mb-12">
           
-          <div className="glass-card p-5">
-            <div className="flex items-center gap-2 mb-2 text-gray-400">
-              <Target size={16} />
-              <span className="text-xs uppercase tracking-wider font-mono">Win Rate</span>
-            </div>
-            <div className="text-3xl font-display text-white">
-              {stats.winRate.toFixed(1)}%
-            </div>
-          </div>
-          
-          <div className="glass-card p-5">
-            <div className="flex items-center gap-2 mb-2 text-gray-400">
-              <TrendingUp size={16} className="text-green-400" />
-              <span className="text-xs uppercase tracking-wider font-mono">Ganadas</span>
-            </div>
-            <div className="text-3xl font-display text-green-400">
-              {stats.winningTrades}
-            </div>
-          </div>
-          
-          <div className="glass-card p-5">
-            <div className="flex items-center gap-2 mb-2 text-gray-400">
-              <TrendingDown size={16} className="text-red-400" />
-              <span className="text-xs uppercase tracking-wider font-mono">Perdidas</span>
-            </div>
-            <div className="text-3xl font-display text-red-400">
-              {stats.losingTrades}
-            </div>
-          </div>
-        </div>
-
-        {/* Trades Table */}
-        <div className="glass-card overflow-hidden border border-gray-800">
-          <div className="p-6 border-b border-gray-800 flex justify-between items-center bg-gray-800/30">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              Últimas Operaciones
+          <div className="bg-[#0F172A]/80 border border-white/5 rounded-2xl p-6 text-center shadow-2xl backdrop-blur-sm min-w-[280px]">
+            <h2 className="text-4xl md:text-5xl font-black text-[#00E5FF] tracking-tight">
+              ${formatCurrency(metrics.finalBalance)}
             </h2>
-            <div className="text-xs font-mono text-gray-500">
-              {trades.length} operaciones registradas
-            </div>
+            <p className="text-xs text-slate-500 tracking-widest mt-2 uppercase">Saldo Final Auditado (USD)</p>
           </div>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-gray-300">
-              <thead className="text-gray-500 border-b border-gray-800 bg-gray-900/50">
-                <tr>
-                  <th className="p-4 font-medium font-mono text-xs uppercase tracking-wider">Fecha</th>
-                  <th className="p-4 font-medium font-mono text-xs uppercase tracking-wider">Símbolo</th>
-                  <th className="p-4 font-medium font-mono text-xs uppercase tracking-wider">Tipo</th>
-                  <th className="p-4 font-medium font-mono text-xs uppercase tracking-wider text-right">Lote</th>
-                  <th className="p-4 font-medium font-mono text-xs uppercase tracking-wider text-right">Profit (USD)</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-800/50">
-                {trades.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="p-8 text-center text-gray-500">
-                      No hay operaciones registradas aún.
-                    </td>
-                  </tr>
-                ) : (
-                  trades.map(t => (
-                    <tr key={t.id} className="hover:bg-white/5 transition-colors group">
-                      <td className="p-4 text-gray-400 font-mono text-xs">
-                        {new Date(t.closeTime).toLocaleString('es-ES', { 
-                          day: '2-digit', month: '2-digit', year: '2-digit',
-                          hour: '2-digit', minute: '2-digit'
-                        })}
-                      </td>
-                      <td className="p-4 font-bold text-white group-hover:text-brand-primary transition-colors">
-                        {t.symbol}
-                      </td>
-                      <td className="p-4">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${
-                          t.type === 'buy' 
-                            ? 'bg-green-500/10 text-green-400 border-green-500/20' 
-                            : 'bg-red-500/10 text-red-400 border-red-500/20'
-                        }`}>
-                          {t.type === 'buy' ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                          {t.type.toUpperCase()}
-                        </span>
-                      </td>
-                      <td className="p-4 text-right text-gray-400 font-mono">
-                        {t.volume.toFixed(2)}
-                      </td>
-                      <td className={`p-4 text-right font-mono font-bold ${
-                        t.profit >= 0 ? 'text-green-400' : 'text-red-400'
-                      }`}>
-                        {t.profit > 0 ? '+' : ''}{t.profit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+
+          <div className="bg-[#0F172A]/80 border border-white/5 rounded-2xl p-6 text-center shadow-2xl backdrop-blur-sm min-w-[280px]">
+            <h2 className="text-4xl md:text-5xl font-black text-[#F59E0B] tracking-tight">
+              +{formatCurrency(metrics.absReturn)}%
+            </h2>
+            <p className="text-xs text-slate-500 tracking-widest mt-2 uppercase">Rendimiento Acumulado</p>
+          </div>
+
+          <div className="bg-[#0F172A]/80 border border-white/5 rounded-2xl p-6 text-center shadow-2xl backdrop-blur-sm min-w-[280px]">
+            <h2 className="text-4xl md:text-5xl font-black text-[#00E5FF] tracking-tight">
+              {INITIAL_CAPITAL} USD
+            </h2>
+            <p className="text-xs text-slate-500 tracking-widest mt-2 uppercase">Capital Inicial Base</p>
           </div>
         </div>
 
+        {/* Action Buttons */}
+        <div className="flex flex-wrap justify-center gap-4 mb-16">
+          <button className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-bold py-3 px-8 rounded-lg tracking-wider text-sm transition-all shadow-[0_0_20px_rgba(139,92,246,0.3)]">
+            COPIAR SEÑAL EN VIVO (VT MARKETS)
+          </button>
+          <button className="bg-[#00E5FF] hover:bg-[#06b6d4] text-[#0B1221] font-bold py-3 px-8 rounded-lg tracking-wider text-sm transition-all shadow-[0_0_20px_rgba(0,229,255,0.3)]">
+            MODELOS DE ACCESO
+          </button>
+          <button className="bg-transparent border border-[#00E5FF] text-[#00E5FF] hover:bg-[#00E5FF]/10 font-bold py-3 px-8 rounded-lg tracking-wider text-sm transition-all">
+            SEÑAL EN VIVO (MYFXBOOK)
+          </button>
+        </div>
+
+        {/* Track Record Sections */}
+        <div className="mb-12">
+          <div className="flex items-center gap-2 mb-6">
+            <div className="h-px w-8 bg-[#00E5FF]"></div>
+            <p className="text-[#00E5FF] text-xs font-mono tracking-widest uppercase">Métricas de Rendimiento Comercial</p>
+          </div>
+          <h3 className="text-3xl font-black text-white uppercase tracking-wider flex items-center gap-3">
+            Track Record Matemático Real Auditado
+            <ShieldCheck className="text-[#00E5FF]" size={32} />
+          </h3>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          <div className="bg-[#0F172A] border border-white/5 rounded-xl p-6">
+            <p className="text-[10px] text-slate-500 tracking-widest uppercase mb-2">Rendimiento Acumulado Absoluto</p>
+            <h4 className="text-3xl font-black text-[#00E5FF]">+{formatCurrency(metrics.absReturn)}%</h4>
+            <p className="text-xs text-slate-400 mt-2">Basado en el capital inicial base validado</p>
+          </div>
+          <div className="bg-[#0F172A] border border-white/5 rounded-xl p-6">
+            <p className="text-[10px] text-slate-500 tracking-widest uppercase mb-2">Efectividad Operativa</p>
+            <h4 className="text-3xl font-black text-[#10B981]">{metrics.winRate.toFixed(2)}%</h4>
+            <p className="text-xs text-slate-400 mt-2">Win rate de operaciones ganadoras</p>
+          </div>
+          <div className="bg-[#0F172A] border border-white/5 rounded-xl p-6">
+            <p className="text-[10px] text-slate-500 tracking-widest uppercase mb-2">Ecosistema Central</p>
+            <h4 className="text-3xl font-black text-[#F59E0B]">NATIVO MT5</h4>
+            <p className="text-xs text-slate-400 mt-2">Opcional MT4 como puente corporativo</p>
+          </div>
+          <div className="bg-[#0F172A] border border-white/5 rounded-xl p-6">
+            <p className="text-[10px] text-slate-500 tracking-widest uppercase mb-2">Muestra Histórica</p>
+            <h4 className="text-3xl font-black text-white">{metrics.totalTrades.toLocaleString()}</h4>
+            <p className="text-xs text-slate-400 mt-2">Órdenes ejecutadas y validadas con cierre exacto</p>
+          </div>
+        </div>
+
+        {/* Charts */}
+        <div className="space-y-6">
+          
+          <div className="bg-[#0F172A] border border-white/5 rounded-2xl p-6">
+            <p className="text-[10px] text-slate-500 tracking-widest uppercase mb-1">Evolución del Balance del Pool Comercial (USD)</p>
+            <h4 className="text-xl font-bold text-white mb-6 uppercase">Curva de Crecimiento Monetario Real (Interés Compuesto Orgánico)</h4>
+            <div className="h-[400px]">
+              <Chart options={lineChartOptions} series={[{ name: 'Balance', data: metrics.lineChartData }]} type="area" height="100%" />
+            </div>
+          </div>
+
+          <div className="bg-[#0F172A] border border-white/5 rounded-2xl p-6">
+            <p className="text-[10px] text-slate-500 tracking-widest uppercase mb-1">Volatilidad y Drawdown Histórico</p>
+            <h4 className="text-xl font-bold text-white mb-6 uppercase">Gráfico de Velas Japonesas (Cierre Semanal)</h4>
+            <div className="h-[400px]">
+              <Chart options={candleOptions} series={[{ data: metrics.candlestickData }]} type="candlestick" height="100%" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-[#0F172A] border border-white/5 rounded-2xl p-6">
+              <p className="text-[10px] text-slate-500 tracking-widest uppercase mb-1">Desempeño Mensual Histórico Medio</p>
+              <h4 className="text-xl font-bold text-white mb-6 uppercase">Rendimiento Promedio Mensual (%)</h4>
+              <div className="h-[300px]">
+                <Chart options={barMonthlyOptions} series={[{ name: 'Rendimiento', data: metrics.monthlyBarData }]} type="bar" height="100%" />
+              </div>
+            </div>
+
+            <div className="bg-[#0F172A] border border-white/5 rounded-2xl p-6">
+              <p className="text-[10px] text-slate-500 tracking-widest uppercase mb-1">Cierre Consolidado Anual Simple</p>
+              <h4 className="text-xl font-bold text-white mb-6 uppercase">Rendimiento Anual Acumulado (%)</h4>
+              <div className="h-[300px]">
+                <Chart options={barYearlyOptions} series={[{ name: 'Rendimiento', data: metrics.yearlyBarData }]} type="bar" height="100%" />
+              </div>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
   );

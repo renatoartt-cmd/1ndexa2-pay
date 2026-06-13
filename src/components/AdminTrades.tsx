@@ -50,6 +50,7 @@ export function AdminTrades() {
       const reader = new FileReader();
       reader.onload = async (evt) => {
         try {
+          const xlsx = await import('xlsx');
           const bstr = evt.target?.result;
           const wb = xlsx.read(bstr, { type: 'binary' });
           const wsname = wb.SheetNames[0];
