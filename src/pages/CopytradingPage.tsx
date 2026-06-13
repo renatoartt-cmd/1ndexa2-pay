@@ -1,7 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import Chart from 'react-apexcharts';
 import { useData } from '../hooks/useData';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, Cloud, Server, Play, Pause, Plus, CheckCircle2, Wifi } from 'lucide-react';
 
 const INITIAL_CAPITAL = 100; // USD
 
@@ -40,6 +40,8 @@ function formatCurrency(n: number) {
 
 export function CopytradingPage() {
   const { trades } = useData();
+  const [showConnectForm, setShowConnectForm] = useState(false);
+  const [connectedAccount, setConnectedAccount] = useState<any>(null);
 
   const metrics = useMemo(() => {
     // 1. Sort trades
@@ -242,6 +244,126 @@ export function CopytradingPage() {
           <button className="bg-transparent border border-[#00E5FF] text-[#00E5FF] hover:bg-[#00E5FF]/10 font-bold py-3 px-8 rounded-lg tracking-wider text-sm transition-all">
             SEÑAL EN VIVO (MYFXBOOK)
           </button>
+        </div>
+
+        {/* Cloud Connectivity Hub */}
+        <div className="mb-16">
+          <div className="flex items-center gap-2 mb-6">
+            <div className="h-px w-8 bg-[#8B5CF6]"></div>
+            <p className="text-[#8B5CF6] text-xs font-mono tracking-widest uppercase">Ecosistema en la Nube</p>
+          </div>
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Cloud Status */}
+            <div className="bg-[#0F172A] border border-white/5 rounded-2xl p-6 lg:w-1/3 flex flex-col justify-between relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-24 bg-[#00E5FF]/5 blur-[80px] rounded-full pointer-events-none"></div>
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h4 className="text-white font-bold tracking-wider">ESTADO DEL MASTER</h4>
+                  <span className="flex h-3 w-3 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#10B981] opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-[#10B981]"></span>
+                  </span>
+                </div>
+                <div className="space-y-4 relative z-10">
+                  <div className="flex items-center gap-3 text-sm text-slate-400">
+                    <Server size={16} className="text-[#00E5FF]" />
+                    <span>Servidor: <strong className="text-white">VTMarkets-Live</strong></span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm text-slate-400">
+                    <Wifi size={16} className="text-[#10B981]" />
+                    <span>Latencia: <strong className="text-white">12ms</strong></span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm text-slate-400">
+                    <Cloud size={16} className="text-[#8B5CF6]" />
+                    <span>Cuentas Copiando: <strong className="text-white">1,245</strong></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Connection / Dashboard */}
+            <div className="bg-[#0F172A] border border-[#8B5CF6]/30 rounded-2xl p-6 lg:w-2/3 shadow-[0_0_30px_rgba(139,92,246,0.1)] relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-32 bg-[#8B5CF6]/5 blur-[100px] rounded-full pointer-events-none"></div>
+              
+              {!connectedAccount ? (
+                <>
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h4 className="text-xl font-bold text-white mb-1">Conectar mi cuenta a la Nube</h4>
+                      <p className="text-xs text-slate-400">Vincula tu MetaTrader para replicar las operaciones automáticamente.</p>
+                    </div>
+                    {!showConnectForm && (
+                      <button onClick={() => setShowConnectForm(true)} className="flex items-center gap-2 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white px-4 py-2 rounded-lg text-sm font-bold transition">
+                        <Plus size={16} /> Conectar
+                      </button>
+                    )}
+                  </div>
+
+                  {showConnectForm && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in relative z-10">
+                      <div>
+                        <label className="text-[10px] text-slate-400 uppercase tracking-wider">Bróker</label>
+                        <input type="text" placeholder="Ej: VT Markets" className="w-full bg-[#0B1221] border border-white/10 rounded-lg px-4 py-2 text-white text-sm mt-1 focus:border-[#8B5CF6] outline-none" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 uppercase tracking-wider">Servidor</label>
+                        <input type="text" placeholder="Ej: VTMarkets-Live" className="w-full bg-[#0B1221] border border-white/10 rounded-lg px-4 py-2 text-white text-sm mt-1 focus:border-[#8B5CF6] outline-none" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 uppercase tracking-wider">Número de Cuenta</label>
+                        <input type="text" placeholder="1234567" className="w-full bg-[#0B1221] border border-white/10 rounded-lg px-4 py-2 text-white text-sm mt-1 focus:border-[#8B5CF6] outline-none" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 uppercase tracking-wider">Contraseña (Inversor/Master)</label>
+                        <input type="password" placeholder="••••••••" className="w-full bg-[#0B1221] border border-white/10 rounded-lg px-4 py-2 text-white text-sm mt-1 focus:border-[#8B5CF6] outline-none" />
+                      </div>
+                      <div className="md:col-span-2 flex justify-end gap-3 mt-4">
+                        <button onClick={() => setShowConnectForm(false)} className="px-4 py-2 text-sm text-slate-400 hover:text-white transition">Cancelar</button>
+                        <button onClick={() => setConnectedAccount({ active: true })} className="bg-[#00E5FF] hover:bg-[#06b6d4] text-[#0B1221] px-6 py-2 rounded-lg text-sm font-bold transition shadow-[0_0_15px_rgba(0,229,255,0.3)]">
+                          Validar y Conectar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="animate-fade-in relative z-10">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+                    <div>
+                      <h4 className="text-xl font-bold text-white flex items-center gap-2">
+                        Terminal Conectada <CheckCircle2 size={20} className="text-[#10B981]" />
+                      </h4>
+                      <p className="text-xs text-slate-400">Tu cuenta está recibiendo señales en tiempo real.</p>
+                    </div>
+                    <button 
+                      onClick={() => setConnectedAccount((prev: any) => ({ ...prev, active: !prev.active }))} 
+                      className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition ${connectedAccount.active ? 'bg-[#0B1221] border border-red-500/50 text-red-400 hover:bg-red-500/10' : 'bg-[#10B981] text-[#0B1221] hover:bg-[#059669]'}`}
+                    >
+                      {connectedAccount.active ? <><Pause size={16} /> Pausar Copia</> : <><Play size={16} /> Reanudar Copia</>}
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-[#0B1221] border border-white/5 p-3 rounded-lg text-center">
+                      <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-1">Cuenta</p>
+                      <p className="text-white font-mono text-sm">8819234</p>
+                    </div>
+                    <div className="bg-[#0B1221] border border-white/5 p-3 rounded-lg text-center">
+                      <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-1">Plataforma</p>
+                      <p className="text-white font-mono text-sm">MT5</p>
+                    </div>
+                    <div className="bg-[#0B1221] border border-white/5 p-3 rounded-lg text-center">
+                      <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-1">Riesgo</p>
+                      <p className="text-white font-mono text-sm">Multiplicador x1</p>
+                    </div>
+                    <div className="bg-[#0B1221] border border-white/5 p-3 rounded-lg text-center">
+                      <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-1">Balance Local</p>
+                      <p className="text-[#00E5FF] font-bold text-sm">$4,250.00</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Track Record Sections */}

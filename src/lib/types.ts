@@ -13,6 +13,20 @@ export interface User {
 
 export type NetworkType = 'TRC20' | 'BEP20' | 'ERC20' | 'POL' | 'BTC' | 'ETH' | 'BinancePay';
 
+export interface TradingAccount {
+  id: string;
+  userId: string;
+  broker: string;
+  server: string;
+  accountNumber: string;
+  password?: string;
+  platform: 'MT4' | 'MT5';
+  riskType: 'multiplier' | 'fixed_lot' | 'proportional';
+  riskValue: number;
+  status: 'pending' | 'connected' | 'disconnected' | 'error';
+  createdAt: string;
+}
+
 export interface Deposit {
   id: string;
   userId: string;
