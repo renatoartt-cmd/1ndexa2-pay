@@ -595,23 +595,49 @@ window.addEventListener('DOMContentLoaded', async () => {
   const elBal = document.querySelector('#balanceChart');
   if(elBal) {
     const options = {
-      series: [{ data: [] }],
-      chart: { type: 'candlestick', height: '100%', background: 'transparent', toolbar: { show: false }, animations: { enabled: false } },
+      series: [{ name: 'Balance', data: [] }],
+      chart: { 
+        type: 'candlestick', 
+        height: '100%', 
+        background: 'transparent', 
+        toolbar: { show: true, tools: { download: false, selection: true, zoom: true, pan: true } }, 
+        animations: { enabled: true, easing: 'easeinout', speed: 800 } 
+      },
       theme: { mode: 'dark' },
-      plotOptions: { candlestick: { colors: { upward: '#00e676', downward: '#ff1744' } } },
-      xaxis: { type: 'datetime', labels: { style: { colors: '#7891b5', fontFamily: "'Space Mono', monospace" } }, axisBorder: { show: false }, axisTicks: { show: false } },
+      plotOptions: { 
+        candlestick: { 
+          colors: { upward: '#00e5ff', downward: '#ff1744' },
+          wick: { useDataLabels: false }
+        } 
+      },
+      xaxis: { 
+        type: 'datetime', 
+        labels: { style: { colors: '#7891b5', fontFamily: "'Space Mono', monospace" } }, 
+        axisBorder: { show: false }, 
+        axisTicks: { show: false }
+      },
       yaxis: {
+        logarithmic: true,
+        forceNiceScale: true,
         labels: {
-          style: { colors: '#7891b5', fontFamily: "'Space Mono', monospace" },
+          style: { colors: '#00e5ff', fontFamily: "'Space Mono', monospace", fontWeight: 'bold' },
           formatter: (v) => {
-            if(v >= 1e9) return (v/1e9).toFixed(1)+'B';
-            if(v >= 1e6) return (v/1e6).toFixed(1)+'M';
-            if(v >= 1e3) return (v/1e3).toFixed(1)+'K';
-            return v.toFixed(0);
+            if(!v) return '$0';
+            if(v >= 1e9) return '$' + (v/1e9).toFixed(1)+'B';
+            if(v >= 1e6) return '$' + (v/1e6).toFixed(1)+'M';
+            if(v >= 1e3) return '$' + (v/1e3).toFixed(1)+'K';
+            return '$' + v.toFixed(0);
           }
         }
       },
-      grid: { borderColor: 'rgba(255,255,255,0.02)' }
+      grid: { 
+        borderColor: 'rgba(0, 229, 255, 0.08)',
+        strokeDashArray: 4
+      },
+      tooltip: {
+        theme: 'dark',
+        y: { formatter: (val) => '$' + val.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }
+      }
     };
     chartBalance = new ApexCharts(elBal, options);
     chartBalance.render();
