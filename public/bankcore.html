@@ -365,9 +365,9 @@ function googleTranslateElementInit() {
   <p class="hero-subtitle">Infraestructura de Inversion y Automatizacion de Cuentas MetaTrader 5. Soluciones sin costo fijo mediante comisiones por corretaje, carteras mixtas de renta o licencias independientes en la nube.</p>
   <div class="hero-divider"></div>
   <div class="hero-stats">
-    <div class="hero-stat"><div class="hero-stat-value green">$15,473.8M</div><div class="hero-stat-label">Saldo Final Auditado (Cents)</div></div>
-    <div class="hero-stat"><div class="hero-stat-value gold">+154,737,948.50%</div><div class="hero-stat-label">Rendimiento Acumulado</div></div>
-    <div class="hero-stat"><div class="hero-stat-value accent">100 USD (10,000 Cent)</div><div class="hero-stat-label">Capital Inicial Base</div></div>
+    <div class="hero-stat"><div id="hero-saldo" class="hero-stat-value green">$--</div><div class="hero-stat-label">Saldo Final Auditado (Cents)</div></div>
+    <div class="hero-stat"><div id="hero-rendimiento" class="hero-stat-value gold">+--%</div><div class="hero-stat-label">Rendimiento Acumulado Absoluto</div></div>
+    <div class="hero-stat"><div id="hero-capital" class="hero-stat-value accent">-- USD (-- Cent)</div><div class="hero-stat-label">Capital Inicial Base Neto</div></div>
   </div>
   <div class="hero-cta">
     <a href="https://myaccount.vtmarkets.com/copyTrading/discover/discoverDetail?strategyId=983247" target="_blank" class="btn-primary" style="background:var(--accent2);">COPIAR SEÑAL EN VIVO (VT MARKETS)</a>
@@ -380,10 +380,10 @@ function googleTranslateElementInit() {
   <div class="section-label">Metricas de Rendimiento Comercial</div>
   <h2 class="section-title">TRACK RECORD MATEMATICO REAL AUDITADO</h2>
   <div class="kpi-grid">
-    <div class="kpi-card"><div class="kpi-label">Rendimiento Acumulado Absoluto</div><div class="kpi-value accent">+154,737,948.50%</div><div class="kpi-sub">Basado en el capital inicial base validado</div></div>
-    <div class="kpi-card"><div class="kpi-label">Efectividad Operativa</div><div class="kpi-value green">79.11%</div><div class="kpi-sub">Win rate de operaciones ganadoras</div></div>
+    <div class="kpi-card"><div class="kpi-label">Rendimiento Acumulado Absoluto</div><div id="kpi-rendimiento" class="kpi-value accent">+--%</div><div class="kpi-sub">Basado en el capital base neto auditado</div></div>
+    <div class="kpi-card"><div class="kpi-label">Efectividad Operativa</div><div id="kpi-winrate" class="kpi-value green">--%</div><div class="kpi-sub">Win rate de operaciones ganadoras</div></div>
     <div class="kpi-card"><div class="kpi-label">Ecosistema Central</div><div class="kpi-value gold">NATIVO MT5</div><div class="kpi-sub">Opcional MT4 como puente corporativo</div></div>
-    <div class="kpi-card"><div class="kpi-label">Muestra Historica</div><div class="kpi-value">9,567</div><div class="kpi-sub">Ordenes ejecutadas y validadas con cierre exacto</div></div>
+    <div class="kpi-card"><div class="kpi-label">Muestra Historica</div><div id="kpi-trades" class="kpi-value">--</div><div class="kpi-sub">Ordenes ejecutadas y validadas con cierre exacto</div></div>
   </div>
 </section>
 
@@ -568,48 +568,34 @@ window.addEventListener('message', function(e) {
 
 let chartBalance, chart2, chart3;
 
-const balanceTimeline = [
-  { label: 'May 20', val: 10000.0 }, { label: 'May 22', val: 10190.44 }, { label: 'Jun 22', val: 12873.75 },
-  { label: 'Jul 22', val: 22628.5 }, { label: 'Aug 22', val: 32159.66 }, { label: 'Sep 22', val: 58933.66 },
-  { label: 'Oct 22', val: 127488.4 }, { label: 'Nov 22', val: 442498.73 }, { label: 'Dec 22', val: 566676.87 },
-  { label: 'Jan 23', val: 794001.35 }, { label: 'Feb 23', val: 1320468.49 }, { label: 'Mar 23', val: 1938736.31 },
-  { label: 'Apr 23', val: 2448767.33 }, { label: 'May 23', val: 2715616.99 }, { label: 'Jun 23', val: 3366003.79 },
-  { label: 'Jul 23', val: 4500176.13 }, { label: 'Aug 23', val: 5433510.37 }, { label: 'Sep 23', val: 5745889.46 },
-  { label: 'Oct 23', val: 7958491.72 }, { label: 'Nov 23', val: 8892459.7 }, { label: 'Dec 23', val: 11239319.89 },
-  { label: 'Jan 24', val: 15405371.98 }, { label: 'Feb 24', val: 17986145.4 }, { label: 'Mar 24', val: 20261343.48 },
-  { label: 'Apr 24', val: 24086272.14 }, { label: 'May 24', val: 28394935.97 }, { label: 'Jun 24', val: 31847835.68 },
-  { label: 'Jul 24', val: 33969888.4 }, { label: 'Aug 24', val: 39323342.51 }, { label: 'Sep 24', val: 47220743.46 },
-  { label: 'Oct 24', val: 52639867.87 }, { label: 'Nov 24', val: 89979258.34 }, { label: 'Dec 24', val: 99450815.25 },
-  { label: 'Jan 25', val: 152845531.37 }, { label: 'Feb 25', val: 258847135.38 }, { label: 'Mar 25', val: 468814027.82 },
-  { label: 'Apr 25', val: 1188576142.39 }, { label: 'May 25', val: 1626917239.84 }, { label: 'Jun 25', val: 2088290251.08 },
-  { label: 'Jul 25', val: 2696252253.74 }, { label: 'Aug 25', val: 3449056980.57 }, { label: 'Sep 25', val: 3930305626.73 },
-  { label: 'Oct 25', val: 4245628336.46 }, { label: 'Nov 25', val: 4650724008.83 }, { label: 'Dec 25', val: 4730984062.74 },
-  { label: 'Jan 26', val: 6436640400.66 }, { label: 'Feb 26', val: 8155834108.5 }, { label: 'Mar 26', val: 12110482879.38 },
-  { label: 'Apr 26', val: 15503790614.4 }, { label: 'May 26', val: 15473804850.03 }
-];
+async function fetchAllTrades() {
+  const SUPABASE_URL = 'https://pgjwzmfoseasihtiklkq.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_ce3lKC0tbrANKdIgOupCGw_dQzWapkQ';
+  let allData = [];
+  let offset = 0;
+  while(true) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/trades?select=type,profit,close_time&offset=${offset}&limit=1000`, {
+      headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY }
+    });
+    if(!res.ok) break;
+    const data = await res.json();
+    allData = allData.concat(data);
+    if(data.length < 1000) break;
+    offset += 1000;
+  }
+  return allData;
+}
 
-const monthlyAvgData = [
-  { m: 'Ene', p: 41.73 }, { m: 'Feb', p: 44.78 }, { m: 'Mar', p: 47.27 }, { m: 'Abr', p: 56.68 },
-  { m: 'May', p: 13.48 }, { m: 'Jun', p: 22.70 }, { m: 'Jul', p: 36.31 }, { m: 'Ago', p: 26.63 },
-  { m: 'Sep', p: 30.76 }, { m: 'Oct', p: 43.58 }, { m: 'Nov', p: 84.83 }, { m: 'Dic', p: 16.68 }
-];
-
-const yearlyPctData = [
-  { y: '2022', p: 5566.8 }, { y: '2023', p: 1883.4 }, { y: '2024', p: 784.8 }, { y: '2025', p: 4657.1 }, { y: '2026', p: 227.1 }
-];
-
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
   Chart.defaults.color = '#7891b5';
   Chart.defaults.font.family = "'Space Mono', monospace";
 
+  // Initialize empty charts
   const ctxBal = document.getElementById('balanceChart');
   if(ctxBal) {
     chartBalance = new Chart(ctxBal.getContext('2d'), {
       type: 'line',
-      data: {
-        labels: balanceTimeline.map(d => d.label),
-        datasets: [{ data: balanceTimeline.map(d => d.val), borderColor: '#00e5ff', backgroundColor: 'rgba(0,229,255,0.04)', borderWidth: 3, fill: true, tension: 0.15 }]
-      },
+      data: { labels: [], datasets: [{ data: [], borderColor: '#00e5ff', backgroundColor: 'rgba(0,229,255,0.04)', borderWidth: 3, fill: true, tension: 0.15 }] },
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },
@@ -625,7 +611,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if(ctx2) {
     chart2 = new Chart(ctx2.getContext('2d'), {
       type: 'bar',
-      data: { labels: monthlyAvgData.map(d => d.m), datasets: [{ data: monthlyAvgData.map(d => d.p), backgroundColor: '#7b61ff', borderRadius: 4 }] },
+      data: { labels: [], datasets: [{ data: [], backgroundColor: '#7b61ff', borderRadius: 4 }] },
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: 'rgba(255,255,255,0.02)' } }, y: { grid: { color: 'rgba(255,255,255,0.02)' }, ticks: { callback: v => v + '%' } } } }
     });
   }
@@ -634,9 +620,111 @@ window.addEventListener('DOMContentLoaded', () => {
   if(ctx3) {
     chart3 = new Chart(ctx3.getContext('2d'), {
       type: 'bar',
-      data: { labels: yearlyPctData.map(d => d.y), datasets: [{ data: yearlyPctData.map(d => d.p), backgroundColor: '#00e5ff', borderRadius: 4 }] },
+      data: { labels: [], datasets: [{ data: [], backgroundColor: '#00e5ff', borderRadius: 4 }] },
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: 'rgba(255,255,255,0.02)' } }, y: { grid: { color: 'rgba(255,255,255,0.02)' }, ticks: { callback: v => '+' + v.toFixed(0) + '%' } } } }
     });
+  }
+
+  // Fetch and update data
+  try {
+    const trades = await fetchAllTrades();
+    trades.sort((a,b) => new Date(a.close_time) - new Date(b.close_time));
+    
+    let currentBalance = 0;
+    let netDeposits = 0;
+    let winningTrades = 0;
+    let numTradingTrades = 0;
+    let totalProfit = 0;
+    
+    const dailyBalances = {};
+    const monthlyData = {};
+    const yearlyData = {};
+
+    trades.forEach(t => {
+      if(!t.close_time) return;
+      const d = new Date(t.close_time);
+      const dateStr = d.toISOString().split('T')[0];
+      const monthKey = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+      const yearKey = String(d.getFullYear());
+
+      if(t.type === 'balance') {
+        currentBalance += t.profit;
+        netDeposits += t.profit;
+        dailyBalances[dateStr] = currentBalance;
+        return;
+      }
+      
+      numTradingTrades++;
+      if(t.profit > 0) winningTrades++;
+      totalProfit += t.profit;
+
+      if(!monthlyData[monthKey]) monthlyData[monthKey] = { start: currentBalance, profit: 0 };
+      if(!yearlyData[yearKey]) yearlyData[yearKey] = { start: currentBalance, profit: 0 };
+
+      currentBalance += t.profit;
+      dailyBalances[dateStr] = currentBalance;
+      monthlyData[monthKey].profit += t.profit;
+      yearlyData[yearKey].profit += t.profit;
+    });
+
+    const winRate = numTradingTrades > 0 ? (winningTrades / numTradingTrades) * 100 : 0;
+    const absReturn = netDeposits > 0 ? (totalProfit / netDeposits) * 100 : 0;
+
+    const elSaldo = document.getElementById('hero-saldo');
+    if(elSaldo) elSaldo.innerText = '$' + currentBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    
+    const elRend = document.getElementById('hero-rendimiento');
+    if(elRend) elRend.innerText = '+' + absReturn.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '%';
+    
+    const elCap = document.getElementById('hero-capital');
+    if(elCap) elCap.innerText = netDeposits.toLocaleString('en-US', {minimumFractionDigits: 0}) + ' USD Cent';
+    
+    const kpiRend = document.getElementById('kpi-rendimiento');
+    if(kpiRend) kpiRend.innerText = '+' + absReturn.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '%';
+    
+    const kpiWin = document.getElementById('kpi-winrate');
+    if(kpiWin) kpiWin.innerText = winRate.toFixed(2) + '%';
+    
+    const kpiTrades = document.getElementById('kpi-trades');
+    if(kpiTrades) kpiTrades.innerText = numTradingTrades.toLocaleString('en-US');
+
+    const dates = Object.keys(dailyBalances).sort();
+    const step = Math.max(1, Math.floor(dates.length / 100));
+    const newBalanceTimeline = dates.filter((_,i) => i%step === 0 || i === dates.length-1).map(d => {
+      const dt = new Date(d);
+      return { label: dt.toLocaleString('en-US',{month:'short'}) + ' ' + String(dt.getFullYear()).slice(-2), val: dailyBalances[d] };
+    });
+
+    const newMonthlyAvgData = Object.keys(monthlyData).sort().slice(-12).map(m => {
+      const d = monthlyData[m];
+      const pct = d.start > 0 ? (d.profit/d.start)*100 : 0;
+      const dt = new Date(m + '-01T00:00:00Z');
+      return { m: dt.toLocaleString('es-ES',{month:'short'}) + ' ' + String(dt.getFullYear()).slice(-2), p: parseFloat(pct.toFixed(2)) };
+    });
+
+    const newYearlyPctData = Object.keys(yearlyData).sort().map(y => {
+      const d = yearlyData[y];
+      const pct = d.start > 0 ? (d.profit/d.start)*100 : 0;
+      return { y: y, p: parseFloat(pct.toFixed(2)) };
+    });
+
+    if(chartBalance) {
+      chartBalance.data.labels = newBalanceTimeline.map(d=>d.label);
+      chartBalance.data.datasets[0].data = newBalanceTimeline.map(d=>d.val);
+      chartBalance.update();
+    }
+    if(chart2) {
+      chart2.data.labels = newMonthlyAvgData.map(d=>d.m);
+      chart2.data.datasets[0].data = newMonthlyAvgData.map(d=>d.p);
+      chart2.update();
+    }
+    if(chart3) {
+      chart3.data.labels = newYearlyPctData.map(d=>d.y);
+      chart3.data.datasets[0].data = newYearlyPctData.map(d=>d.p);
+      chart3.update();
+    }
+  } catch(e) {
+    console.error("Error loading MT5 stats:", e);
   }
 });
 
