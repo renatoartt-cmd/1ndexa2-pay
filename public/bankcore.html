@@ -6,6 +6,7 @@
 <title>BankCore — Fintech Ecosystem & Trading Results</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <style>
 :root {
   --bg: #040811;
@@ -447,7 +448,7 @@ function googleTranslateElementInit() {
   <div class="chart-card">
     <div class="chart-title">Evolucion del Balance del Pool Comercial (Cents)</div>
     <div class="chart-headline">Curva de Crecimiento Monetario Real (Interes Compuesto Organico)</div>
-    <div class="chart-wrap-tall"><canvas id="balanceChart"></canvas></div>
+    <div class="chart-wrap-tall"><div id="balanceChart"></div></div>
   </div>
   <div class="chart-grid-2">
     <div class="chart-card">
@@ -591,20 +592,29 @@ window.addEventListener('DOMContentLoaded', async () => {
   Chart.defaults.font.family = "'Space Mono', monospace";
 
   // Initialize empty charts
-  const ctxBal = document.getElementById('balanceChart');
-  if(ctxBal) {
-    chartBalance = new Chart(ctxBal.getContext('2d'), {
-      type: 'line',
-      data: { labels: [], datasets: [{ data: [], borderColor: '#00e5ff', backgroundColor: 'rgba(0,229,255,0.04)', borderWidth: 3, fill: true, tension: 0.15 }] },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { grid: { color: 'rgba(255,255,255,0.02)' } },
-          y: { type: 'logarithmic', grid: { color: 'rgba(255,255,255,0.02)' }, ticks: { callback: function(v) { if(v>=1e9) return (v/1e9).toFixed(1)+'B'; if(v>=1e6) return (v/1e6).toFixed(0)+'M'; if(v>=1e3) return (v/1e3).toFixed(0)+'K'; return v; } } }
+  const elBal = document.querySelector('#balanceChart');
+  if(elBal) {
+    const options = {
+      series: [{ data: [] }],
+      chart: { type: 'candlestick', height: '100%', background: 'transparent', toolbar: { show: false }, animations: { enabled: false } },
+      theme: { mode: 'dark' },
+      plotOptions: { candlestick: { colors: { upward: '#00e676', downward: '#ff1744' } } },
+      xaxis: { type: 'datetime', labels: { style: { colors: '#7891b5', fontFamily: "'Space Mono', monospace" } }, axisBorder: { show: false }, axisTicks: { show: false } },
+      yaxis: {
+        labels: {
+          style: { colors: '#7891b5', fontFamily: "'Space Mono', monospace" },
+          formatter: (v) => {
+            if(v >= 1e9) return (v/1e9).toFixed(1)+'B';
+            if(v >= 1e6) return (v/1e6).toFixed(1)+'M';
+            if(v >= 1e3) return (v/1e3).toFixed(1)+'K';
+            return v.toFixed(0);
+          }
         }
-      }
-    });
+      },
+      grid: { borderColor: 'rgba(255,255,255,0.02)' }
+    };
+    chartBalance = new ApexCharts(elBal, options);
+    chartBalance.render();
   }
 
   const ctx2 = document.getElementById('monthlyChart');
@@ -636,7 +646,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     let numTradingTrades = 0;
     let totalProfit = 0;
     
-    const dailyBalances = {};
+    const weeklyOHLC = {};
     const monthlyData = {};
     const yearlyData = {};
 
@@ -647,22 +657,40 @@ window.addEventListener('DOMContentLoaded', async () => {
       const monthKey = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
       const yearKey = String(d.getFullYear());
 
-      if(t.type === 'balance') {
-        currentBalance += t.profit;
-        netDeposits += t.profit;
-        dailyBalances[dateStr] = currentBalance;
-        return;
-      }
-      
-      numTradingTrades++;
-      if(t.profit > 0) winningTrades++;
-      totalProfit += t.profit;
+      // Calculate start of the week (Monday)
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      const weekStart = new Date(d.getFullYear(), d.getMonth(), diff);
+      const weekKey = weekStart.getTime();
 
-      if(!monthlyData[monthKey]) monthlyData[monthKey] = { start: currentBalance, profit: 0 };
-      if(!yearlyData[yearKey]) yearlyData[yearKey] = { start: currentBalance, profit: 0 };
-
+      const prevBal = currentBalance;
       currentBalance += t.profit;
-      dailyBalances[dateStr] = currentBalance;
+
+      if(t.type === 'balance') {
+        netDeposits += t.profit;
+      } else {
+        numTradingTrades++;
+        if(t.profit > 0) winningTrades++;
+        totalProfit += t.profit;
+      }
+
+      if(!weeklyOHLC[weekKey]) {
+        weeklyOHLC[weekKey] = {
+          x: weekStart,
+          o: prevBal,
+          h: Math.max(prevBal, currentBalance),
+          l: Math.min(prevBal, currentBalance),
+          c: currentBalance
+        };
+      } else {
+        weeklyOHLC[weekKey].h = Math.max(weeklyOHLC[weekKey].h, currentBalance);
+        weeklyOHLC[weekKey].l = Math.min(weeklyOHLC[weekKey].l, currentBalance);
+        weeklyOHLC[weekKey].c = currentBalance;
+      }
+
+      if(!monthlyData[monthKey]) monthlyData[monthKey] = { start: prevBal, profit: 0 };
+      if(!yearlyData[yearKey]) yearlyData[yearKey] = { start: prevBal, profit: 0 };
+
       monthlyData[monthKey].profit += t.profit;
       yearlyData[yearKey].profit += t.profit;
     });
@@ -688,11 +716,17 @@ window.addEventListener('DOMContentLoaded', async () => {
     const kpiTrades = document.getElementById('kpi-trades');
     if(kpiTrades) kpiTrades.innerText = numTradingTrades.toLocaleString('en-US');
 
-    const dates = Object.keys(dailyBalances).sort();
-    const step = Math.max(1, Math.floor(dates.length / 100));
-    const newBalanceTimeline = dates.filter((_,i) => i%step === 0 || i === dates.length-1).map(d => {
-      const dt = new Date(d);
-      return { label: dt.toLocaleString('en-US',{month:'short'}) + ' ' + String(dt.getFullYear()).slice(-2), val: dailyBalances[d] };
+    const candlestickSeries = Object.keys(weeklyOHLC).sort().map(k => {
+      const w = weeklyOHLC[k];
+      return {
+        x: w.x,
+        y: [
+          parseFloat(w.o.toFixed(2)),
+          parseFloat(w.h.toFixed(2)),
+          parseFloat(w.l.toFixed(2)),
+          parseFloat(w.c.toFixed(2))
+        ]
+      };
     });
 
     const newMonthlyAvgData = Object.keys(monthlyData).sort().slice(-12).map(m => {
@@ -709,9 +743,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     });
 
     if(chartBalance) {
-      chartBalance.data.labels = newBalanceTimeline.map(d=>d.label);
-      chartBalance.data.datasets[0].data = newBalanceTimeline.map(d=>d.val);
-      chartBalance.update();
+      chartBalance.updateSeries([{ data: candlestickSeries }]);
     }
     if(chart2) {
       chart2.data.labels = newMonthlyAvgData.map(d=>d.m);
@@ -744,7 +776,17 @@ function toggleTheme() {
   document.getElementById('theme-btn').innerText = newTheme === 'light' ? 'MODO CLARO' : 'MODO OSCURO';
   const gridColor = newTheme === 'light' ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.03)';
   const textColor = newTheme === 'light' ? '#1e293b' : '#7891b5';
-  [chartBalance, chart2, chart3].forEach(chart => {
+  
+  if(chartBalance) {
+    chartBalance.updateOptions({
+      theme: { mode: newTheme === 'light' ? 'light' : 'dark' },
+      grid: { borderColor: gridColor },
+      xaxis: { labels: { style: { colors: textColor } } },
+      yaxis: { labels: { style: { colors: textColor } } }
+    });
+  }
+
+  [chart2, chart3].forEach(chart => {
     if(chart) { chart.options.scales.x.grid.color = gridColor; chart.options.scales.y.grid.color = gridColor; chart.options.scales.x.ticks.color = textColor; chart.options.scales.y.ticks.color = textColor; chart.update(); }
   });
 }
