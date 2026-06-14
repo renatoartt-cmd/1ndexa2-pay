@@ -690,22 +690,26 @@ window.addEventListener('DOMContentLoaded', async () => {
       const weekKey = weekStart.getTime();
 
       const prevBal = currentBalance;
-      currentBalance += t.profit;
-
+      
       if(t.type === 'balance') {
+        if (currentBalance + t.profit <= 0) return; // Ignore MT5 backtest closing withdrawal
+        currentBalance += t.profit;
         netDeposits += t.profit;
       } else {
+        currentBalance += t.profit;
         numTradingTrades++;
         if(t.profit > 0) winningTrades++;
         totalProfit += t.profit;
       }
 
+      const openVal = (prevBal === 0 && t.type === 'balance') ? currentBalance : prevBal;
+
       if(!weeklyOHLC[weekKey]) {
         weeklyOHLC[weekKey] = {
           x: weekStart,
-          o: prevBal,
-          h: Math.max(prevBal, currentBalance),
-          l: Math.min(prevBal, currentBalance),
+          o: openVal,
+          h: Math.max(openVal, currentBalance),
+          l: Math.min(openVal, currentBalance),
           c: currentBalance
         };
       } else {
